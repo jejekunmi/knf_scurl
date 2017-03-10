@@ -14,6 +14,8 @@ X509_V_ERR_CERT_HAS_EXPIRED = 10
 # Global Scurl object
 scurl = None
 
+# Fei's version
+
 class Params():
     def __init__(self):
         self.ssl_method = '--tlsv1.2'
@@ -256,8 +258,6 @@ class Scurl():
 
     def print_vals(self):
         print '\n'.join("%s: %s" % item for item in vars(self).items())
-
-
 
 def main():    
     params = Params()
