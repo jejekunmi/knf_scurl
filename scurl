@@ -8,6 +8,8 @@ SSL_methods = {'--tlsv1.0': SSL.TLSv1_METHOD, '--tlsv1.1': SSL.TLSv1_1_METHOD, \
                '--tlsv1.2': SSL.TLSv1_2_METHOD, '--sslv3': SSL.SSLv3_METHOD, \
                '-3': SSL.SSLv3_METHOD}
 
+# Fei's version
+
 class Params():
     def __init__(self):
         self.ssl_method = '--tlsv1.2'
@@ -133,12 +135,6 @@ class Scurl():
         httpResponse = ''.join(httpResponse)
         sys.stdout.write(httpResponse[4 + httpResponse.find('\r\n\r\n'):])
         sys.stdout.flush()
-
-
-    
-
-
-
 
 def main():    
     params = Params()
