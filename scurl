@@ -180,7 +180,7 @@ class Scurl():
             self.connection.set_tlsext_host_name(self.url.hostname)
             self.connection.do_handshake()
 
-            # Check pinned certificate if specified and verify s
+            # Check pinned certificate if specified and verify hostname match
             Verifier.verify_server_certificate()
         except Exception as e:
             # print e
