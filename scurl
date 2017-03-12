@@ -5,14 +5,13 @@ from datetime import datetime, timedelta
 from OpenSSL import SSL
 from OpenSSL import crypto
 
-
+# Global constants
 SSL_methods = {'--tlsv1.0': SSL.TLSv1_METHOD, '--tlsv1.1': SSL.TLSv1_1_METHOD, \
                '--tlsv1.2': SSL.TLSv1_2_METHOD, '--sslv3': SSL.SSLv3_METHOD, \
                '-3': SSL.SSLv3_METHOD}
 X509_V_ERR_CERT_HAS_EXPIRED = 10
 
-
-
+# Global Scurl object
 scurl = None
 
 class Params():
@@ -55,15 +54,16 @@ class Params():
                 elif a == '--allow-stale-certs':  # --allow-stale-certs
                     try: # Make sure integer greater than 0
                         self.allow_stale_certs = int(args.pop(0))
-                        if self.allow-stale-certs < 0:
+                        if self.allow_stale_certs < 0:
                             sys.exit('Invalid --allow-stale-certs') 
                     except ValueError:
                         sys.exit('Invalid --allow-stale-certs') 
                 elif a == '--pinnedcertificate':  # --pinnedcertificate
-                    self.pinned_certificate = arg.pop(0)
+                    self.pinned_certificate = args.pop(0)
                 else:
                     sys.exit('Invalid argument')
         except Exception as e:
+            # print e
             sys.exit('Invalid call')
 
 
@@ -75,17 +75,17 @@ class Verifier():
             return True
 
         # Verify that certificate has not been revoked
-        if scurl.revoked_list and certificate.get_serial_number() in scurl.revoked_list: # 
+        if scurl.revoked_list and certificate.get_serial_number() in scurl.revoked_list:
             return False
 
         # Verify that it isn't passed allowed stale days
-        if err_num == X509_V_ERR_CERT_HAS_EXPIRED and Verifier.has_really_expired(certificate):
-            return False
+        if err_num == X509_V_ERR_CERT_HAS_EXPIRED:
+            return Verifier.not_too_stale(certificate)
 
         return ret_code
 
     @staticmethod
-    def has_really_expired(certificate):
+    def not_too_stale(certificate):
         expiration_time = datetime.strptime(certificate.get_notAfter(), '%Y%m%d%H%M%SZ')
         return (datetime.now() - expiration_time).days <= scurl.num_stale_days
 
@@ -98,23 +98,50 @@ class Verifier():
            (scurl.pinned_certificate.digest(b"sha256") != server_certificate.digest(b"sha256")):
             sys.exit('Pinned certificate mismatch')
 
-        # Check if last certificate is what we want
+        # Check if server certificate has right hostname identifier
                 
         # Check alternative names
         for i in range(server_certificate.get_extension_count()):
             extension = server_certificate.get_extension(i)
-            if extension.get_short_name() == "subjectAltName" and \
-               scurl.url.hostname in extension.__str__().replace('DNS:', '').replace(' ', '').split(','):
-                return
+            if extension.get_short_name() == "subjectAltName":
+                candidate_names = extension.__str__().replace('DNS:', '').replace(' ', '').split(',')
+                for name in candidate_names:
+                    if Verifier.match_hostname(scurl.url.hostname, name):
+                        return
 
         # Based on : http://blog.san-ss.com.ar/2012/05/validating-ssl-certificate-in-python.html
         common_name = server_certificate.get_subject().commonName.decode()
-        regex = common_name.replace('.', r'\.').replace('*',r'.*') + '$'
-        if re.match(regex, scurl.url.hostname):
+        if Verifier.match_hostname(scurl.url.hostname, common_name):
             return
 
         # Did not match hostname
         sys.exit('Certificate hostname mismatch')
+
+    # https://tools.ietf.org/html/rfc6125#page-27
+    # Section: 6.4.3
+    @staticmethod
+    def match_hostname(hostname, candidate_hostname):
+        wildcard_position = candidate_hostname.rfind('*') # Last '*'
+        first_dot_position = candidate_hostname.find('.') # First '.'
+        a_label_position = candidate_hostname.find('xn--') # First 'xn--'
+
+        # Don't match identifier if wildcard after first dot
+        if wildcard_position > first_dot_position:
+            return False
+
+        # No wildcard matching needed
+        if wildcard_position == -1:
+            return hostname == candidate_hostname
+
+        # Don't match wildcard for A-label or U-label of an internationalized domain name
+        if a_label_position > -1 and wildcard_position > a_label_position:
+            return False
+
+        # Wildcard matching
+        pattern = candidate_hostname.replace('.', r'\.').replace('*',r'[^\.]*')
+        return bool(re.match(pattern, hostname))
+
+
 
 class Scurl():
     def __init__(self, params):
@@ -154,10 +181,11 @@ class Scurl():
         # Use specified CA cert if specified, else use defaults
         try:
             if not params.pinned_certificate and params.cacert:
-                self.context.load_verify_locations(cafile)
+                self.context.load_verify_locations(params.cacert)
             else: 
                 self.context.set_default_verify_paths()
         except Exception as e:
+            # print e
             sys.exit('CA cert failure')
 
         # Set number of stale days to allow
