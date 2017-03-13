@@ -94,18 +94,19 @@ class Verifier():
     @staticmethod
     def verify_server_certificate():
         server_certificate = scurl.connection.get_peer_certificate()
-        print server_certificate
+        #print server_certificate
 
         # Verify pinned certificate matches server certificate
         if scurl.pinned_certificate and \
            (scurl.pinned_certificate.digest(b"sha256") != server_certificate.digest(b"sha256")):
             sys.exit('Pinned certificate mismatch')
 
-        # Check if server certificate has right hostname identifier
+        # Check if server certificate has right hostname identifier        
                 
         # Check alternative names
         for i in range(server_certificate.get_extension_count()):
             extension = server_certificate.get_extension(i)
+            print extension
             if extension.get_short_name() == "subjectAltName":
                 candidate_names = extension.__str__().replace('DNS:', '').replace(' ', '').split(',')
                 for name in candidate_names:
@@ -143,7 +144,6 @@ class Verifier():
         # Wildcard matching
         pattern = candidate_hostname.replace('.', r'\.').replace('*',r'[^\.]*')
         return bool(re.match(pattern, hostname))
-
 
 
 class Scurl():
