@@ -94,6 +94,7 @@ class Verifier():
     @staticmethod
     def verify_server_certificate():
         server_certificate = scurl.connection.get_peer_certificate()
+        print server_certificate
 
         # Verify pinned certificate matches server certificate
         if scurl.pinned_certificate and \
