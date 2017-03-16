@@ -8,49 +8,45 @@ num_pass = 0
 
 
 URLs = [ 
-(1, 'https://www.stanford.edu/',                ['basic']), \
-(2, 'https://expired.badssl.com/',              ['basic']), \
-(3, 'https://wrong.host.badssl.com/',           ['basic']), \
-(4, 'https://self-signed.badssl.com/',          ['basic']), \
-(5, 'https://untrusted-root.badssl.com/',       ['basic']), \
-(6, 'https://revoked.badssl.com/',              ['basic']), \
-(7, 'https://incomplete-chain.badssl.com/',     ['basic']), \
-(8, 'https://sha256.badssl.com/',               ['basic']), \
-(9, 'https://1000-sans.badssl.com/',            ['basic']), \
-(10, 'https://10000-sans.badssl.com/',          ['basic']), \
-(11, 'https://ecc256.badssl.com/',              ['basic']), \
-(12, 'https://ecc384.badssl.com/',              ['basic']), \
-(13, 'https://rsa8192.badssl.com/',             ['basic']), \
-(14, 'https://mixed-script.badssl.com/',        ['basic']), \
-(15, 'https://very.badssl.com/',                ['basic']), \
-(16, 'https://mixed.badssl.com/',               ['basic']), \
-(17, 'https://mixed-favicon.badssl.com/',       ['basic']), \
-(18, 'https://mixed-favicon.badssl.com/',       ['basic']), \
-(19, 'http://http-password.badssl.com/',        ['https']), \
-(20, 'http://http-login.badssl.com/',           ['https']), \
-(21, 'http://http-dynamic-login.badssl.com/',   ['https']), \
-(22, 'http://http-credit-card.badssl.com/',     ['https']), \
-(23, 'https://cbc.badssl.com/',                 ['basic']), \
+#(1, 'https://www.stanford.edu/',                ['basic']), \
+# (2, 'https://expired.badssl.com/',              ['basic']), \
+# (3, 'https://wrong.host.badssl.com/',           ['basic']), \
+# (4, 'https://self-signed.badssl.com/',          ['basic']), \
+# (5, 'https://untrusted-root.badssl.com/',       ['basic']), \
+# (6, 'https://revoked.badssl.com/',              ['basic']), \
+# (7, 'https://incomplete-chain.badssl.com/',     ['basic']), \
+# (8, 'https://sha256.badssl.com/',               ['basic']), \
+# (9, 'https://1000-sans.badssl.com/',            ['basic']), \
+# (10, 'https://10000-sans.badssl.com/',          ['basic']), \
+# (11, 'https://ecc256.badssl.com/',              ['basic']), \
+# (12, 'https://ecc384.badssl.com/',              ['basic']), \
+# (13, 'https://rsa8192.badssl.com/',             ['basic']), \
+# (14, 'https://mixed-script.badssl.com/',        ['basic']), \
+# (15, 'https://very.badssl.com/',                ['basic']), \
+# (16, 'https://mixed.badssl.com/',               ['basic']), \
+# (17, 'https://mixed-favicon.badssl.com/',       ['basic']), \
+# (18, 'https://mixed-favicon.badssl.com/',       ['basic']), \
+# (19, 'http://http-password.badssl.com/',        ['https']), \
+# (20, 'http://http-login.badssl.com/',           ['https']), \
+# (21, 'http://http-dynamic-login.badssl.com/',   ['https']), \
+# (22, 'http://http-credit-card.badssl.com/',     ['https']), \
+# (23, 'https://cbc.badssl.com/',                 ['basic']), \
 # (24, 'https://rc4-md5.badssl.com/',             ['basic']), \
 # (25, 'https://rc4.badssl.com/',                 ['basic']), \
-(25, 'https://3des.badssl.com/',                ['basic']), \
-(26, 'https://null.badssl.com/',                ['basic']), \
-(27, 'https://mozilla-old.badssl.com/',         ['basic']), \
-(28, 'https://mozilla-intermediate.badssl.com/',['basic']), \
-(29, 'https://mozilla-modern.badssl.com/',      ['basic']), \
-(30, 'https://dh480.badssl.com/',               ['basic']), \
-(31, 'https://dh512.badssl.com/',               ['basic']), \
-(32, 'https://dh1024.badssl.com/',              ['basic']), \
-(33, 'https://dh2048.badssl.com/',              ['basic']), \
+# (25, 'https://3des.badssl.com/',                ['basic']), \
+# (26, 'https://null.badssl.com/',                ['basic']), \
+# (27, 'https://mozilla-old.badssl.com/',         ['basic']), \
+# (28, 'https://mozilla-intermediate.badssl.com/',['basic']), \
+# (29, 'https://mozilla-modern.badssl.com/',      ['basic']), \
+# (30, 'https://dh480.badssl.com/',               ['basic']), \
+# (31, 'https://dh512.badssl.com/',               ['basic']), \
+# (32, 'https://dh1024.badssl.com/',              ['basic']), \
+# (33, 'https://dh2048.badssl.com/',              ['basic']), \
 (34, 'https://dh-small-subgroup.badssl.com/',   ['basic']), \
 ]
 
 
-
-
-
-
-SSL_methods = ['', '--tlsv1.0', '--tlsv1.1', '--tlsv1.2', '--sslv3', '-3']
+SSL_methods = ['--tlsv1.0'] #['', '--tlsv1.0', '--tlsv1.1', '--tlsv1.2', '--sslv3', '-3']
 
 def did_command_pass(command):
     return not bool((os.system(command)) >> 8)
@@ -67,7 +63,7 @@ def basic_test(url):
         os.system('rm -rf ' + expected_file)
 
         actually_passed = did_command_pass('./scurl ' + args + ' &> ' + actual_file)
-        expected_to_pass = did_command_pass('./curl -s ' + args + ' &> ' + expected_file)
+        expected_to_pass = did_command_pass('curl -s ' + args + ' &> ' + expected_file)
 
         if expected_to_pass and actually_passed:
             if did_command_pass('diff ' + actual_file + ' ' + expected_file + ' &> /dev/null'):
