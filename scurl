@@ -15,6 +15,9 @@ X509_V_ERR_CERT_HAS_EXPIRED = 10
 scurl = None
 
 class Params():
+    ###########################################
+    # Parameter class: parse relevant arguments
+    ###########################################
     def __init__(self):
         self.ssl_method = '--tlsv1.2'
         self.ciphers = None
@@ -63,11 +66,13 @@ class Params():
                 else:
                     sys.exit('Invalid argument')
         except Exception as e:
-            # print e
             sys.exit('Invalid call')
 
 
 class Verifier():
+    #############################################################################
+    # Verifier class: implement cerification verification for root and leaf nodes
+    #############################################################################
     @staticmethod
     def verify_certificate(connection, certificate, err_num, err_depth, ret_code):
         # If pinned certificate is specified, do separate verification later
@@ -92,26 +97,22 @@ class Verifier():
     @staticmethod
     def verify_server_certificate():
         server_certificate = scurl.connection.get_peer_certificate()
-        #print server_certificate
 
         # Verify pinned certificate matches server certificate
         if scurl.pinned_certificate and \
            (scurl.pinned_certificate.digest(b"sha256") != server_certificate.digest(b"sha256")):
             sys.exit('Pinned certificate mismatch')
 
-        # Check if server certificate has right hostname identifier        
-                
-        # Check alternative names
+        # Check if server certificate has right hostname identifier and check for alternative names
         for i in range(server_certificate.get_extension_count()):
             extension = server_certificate.get_extension(i)
-            # print extension
             if extension.get_short_name() == "subjectAltName":
                 candidate_names = extension.__str__().replace('DNS:', '').replace(' ', '').split(',')
                 for name in candidate_names:
                     if Verifier.match_hostname(scurl.url.hostname, name):
                         return
 
-        # Based on : http://blog.san-ss.com.ar/2012/05/validating-ssl-certificate-in-python.html
+        # Get common names based on : http://blog.san-ss.com.ar/2012/05/validating-ssl-certificate-in-python.html
         common_name = server_certificate.get_subject().commonName.decode()
         if Verifier.match_hostname(scurl.url.hostname, common_name):
             return
@@ -119,7 +120,7 @@ class Verifier():
         # Did not match hostname
         sys.exit('Certificate hostname mismatch')
 
-    # https://tools.ietf.org/html/rfc6125#page-27
+    # Implement Server Name Indication using ( https://tools.ietf.org/html/rfc6125#page-27)
     # Section: 6.4.3
     @staticmethod
     def match_hostname(hostname, candidate_hostname):
@@ -145,6 +146,9 @@ class Verifier():
 
 
 class Scurl():
+    #############################################################################
+    # Scurl class: main class implementing all curl-inspired options
+    #############################################################################
     def __init__(self, params):
         self.connection = None
         self.context = None
@@ -165,9 +169,6 @@ class Scurl():
         except Exception as e:
             sys.exit('Method failure')
 
-        # Server must provide certificate that will be verified
-        # self.context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, Verifier.verify_certificate)
-                
         # Set ciphers if specified 
         if params.ciphers:
             try:
@@ -183,7 +184,6 @@ class Scurl():
                     crl = crypto.load_crl(crypto.FILETYPE_PEM, buffer)
                     self.revoked_list = set([long(c.get_serial(), 16) for c in crl.get_revoked()]) 
             except Exception as e:
-                # print e
                 sys.exit('CRL file failure')
 
         # Use specified CA cert if specified, else use defaults
@@ -193,7 +193,6 @@ class Scurl():
             else: 
                 self.context.set_default_verify_paths()
         except Exception as e:
-            # print e
             sys.exit('CA cert failure')
 
         # Set number of stale days to allow
@@ -215,7 +214,6 @@ class Scurl():
             self.connection.set_connect_state()
             self.connection.set_tlsext_host_name(self.url.hostname)
         except Exception as e:
-            # print e
             sys.exit('Could not connect')
 
         try:
@@ -224,7 +222,6 @@ class Scurl():
             # Check pinned certificate if specified and verify hostname match
             Verifier.verify_server_certificate()
         except Exception as e:
-            # print e
             sys.exit('Verification failure')
 
     def end_connection(self):
@@ -252,7 +249,6 @@ class Scurl():
             except SSL.ZeroReturnError:
                 break
             except Exception as e:
-                # print e
                 # sys.exit('Error while receiving data')
                 break
 
@@ -266,7 +262,6 @@ class Scurl():
 
 def main():    
     params = Params()
-    # params.print_vals()
 
     global scurl
     scurl = Scurl(params)
