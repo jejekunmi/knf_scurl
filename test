@@ -1,52 +1,55 @@
 #!/usr/bin/python
 
-import sys, os
+import sys, os, urlparse
 from datetime import datetime, timedelta
 
 test_id = 0
 num_pass = 0
 
-
 URLs = [ 
-#(1, 'https://www.stanford.edu/',                ['basic']), \
-# (2, 'https://expired.badssl.com/',              ['basic']), \
-# (3, 'https://wrong.host.badssl.com/',           ['basic']), \
-# (4, 'https://self-signed.badssl.com/',          ['basic']), \
-# (5, 'https://untrusted-root.badssl.com/',       ['basic']), \
-# (6, 'https://revoked.badssl.com/',              ['basic']), \
-# (7, 'https://incomplete-chain.badssl.com/',     ['basic']), \
-# (8, 'https://sha256.badssl.com/',               ['basic']), \
-# (9, 'https://1000-sans.badssl.com/',            ['basic']), \
-# (10, 'https://10000-sans.badssl.com/',          ['basic']), \
-# (11, 'https://ecc256.badssl.com/',              ['basic']), \
-# (12, 'https://ecc384.badssl.com/',              ['basic']), \
-# (13, 'https://rsa8192.badssl.com/',             ['basic']), \
-# (14, 'https://mixed-script.badssl.com/',        ['basic']), \
-# (15, 'https://very.badssl.com/',                ['basic']), \
-# (16, 'https://mixed.badssl.com/',               ['basic']), \
-# (17, 'https://mixed-favicon.badssl.com/',       ['basic']), \
-# (18, 'https://mixed-favicon.badssl.com/',       ['basic']), \
-# (19, 'http://http-password.badssl.com/',        ['https']), \
-# (20, 'http://http-login.badssl.com/',           ['https']), \
-# (21, 'http://http-dynamic-login.badssl.com/',   ['https']), \
-# (22, 'http://http-credit-card.badssl.com/',     ['https']), \
-# (23, 'https://cbc.badssl.com/',                 ['basic']), \
-# (24, 'https://rc4-md5.badssl.com/',             ['basic']), \
-# (25, 'https://rc4.badssl.com/',                 ['basic']), \
-# (25, 'https://3des.badssl.com/',                ['basic']), \
-# (26, 'https://null.badssl.com/',                ['basic']), \
-# (27, 'https://mozilla-old.badssl.com/',         ['basic']), \
-# (28, 'https://mozilla-intermediate.badssl.com/',['basic']), \
-# (29, 'https://mozilla-modern.badssl.com/',      ['basic']), \
-# (30, 'https://dh480.badssl.com/',               ['basic']), \
-# (31, 'https://dh512.badssl.com/',               ['basic']), \
-# (32, 'https://dh1024.badssl.com/',              ['basic']), \
-# (33, 'https://dh2048.badssl.com/',              ['basic']), \
+(1, 'https://stanford.edu/',                    ['basic', 'pinnedcert']), \
+(2, 'https://expired.badssl.com/',              ['basic', 'pinnedcert']), \
+(3, 'https://wrong.host.badssl.com/',           ['basic']), \
+(4, 'https://self-signed.badssl.com/',          ['basic']), \
+(5, 'https://untrusted-root.badssl.com/',       ['basic']), \
+(6, 'https://revoked.badssl.com/',              ['basic']), \
+(7, 'https://incomplete-chain.badssl.com/',     ['basic']), \
+(8, 'https://sha256.badssl.com/',               ['basic']), \
+(9, 'https://1000-sans.badssl.com/',            ['basic']), \
+(10, 'https://10000-sans.badssl.com/',          ['basic']), \
+(11, 'https://ecc256.badssl.com/',              ['basic']), \
+(12, 'https://ecc384.badssl.com/',              ['basic']), \
+(13, 'https://rsa8192.badssl.com/',             ['basic']), \
+(14, 'https://mixed-script.badssl.com/',        ['basic']), \
+(15, 'https://very.badssl.com/',                ['basic']), \
+(16, 'https://mixed.badssl.com/',               ['basic']), \
+(17, 'https://mixed-favicon.badssl.com/',       ['basic']), \
+(18, 'https://mixed-favicon.badssl.com/',       ['basic']), \
+(19, 'http://http-password.badssl.com/',        ['https']), \
+(20, 'http://http-login.badssl.com/',           ['https']), \
+(21, 'http://http-dynamic-login.badssl.com/',   ['https']), \
+(22, 'http://http-credit-card.badssl.com/',     ['https']), \
+(23, 'https://cbc.badssl.com/',                 ['basic']), \
+(24, 'https://rc4-md5.badssl.com/',             ['basic']), \
+(25, 'https://rc4.badssl.com/',                 ['basic']), \
+(25, 'https://3des.badssl.com/',                ['basic']), \
+(26, 'https://null.badssl.com/',                ['basic']), \
+(27, 'https://mozilla-old.badssl.com/',         ['basic']), \
+(28, 'https://mozilla-intermediate.badssl.com/',['basic']), \
+(29, 'https://mozilla-modern.badssl.com/',      ['basic']), \
+(30, 'https://dh480.badssl.com/',               ['basic']), \
+(31, 'https://dh512.badssl.com/',               ['basic']), \
+(32, 'https://dh1024.badssl.com/',              ['basic']), \
+(33, 'https://dh2048.badssl.com/',              ['basic']), \
 (34, 'https://dh-small-subgroup.badssl.com/',   ['basic']), \
+(35, 'https://pinning-test.badssl.com/',        ['pinnedcert']), \
+(36, 'https://apple.com',                       ['pinnedcert']), \
+(37, 'https://facebook.com',                    ['pinnedcert'])
 ]
 
 
 SSL_methods = ['--tlsv1.0'] #['', '--tlsv1.0', '--tlsv1.1', '--tlsv1.2', '--sslv3', '-3']
+
 
 def did_command_pass(command):
     return not bool((os.system(command)) >> 8)
@@ -105,16 +108,87 @@ def https_test(url):
 
         test_id += 1
 
+def extract_PEM(url):
+    dir_path = os.path.dirname(os.path.realpath(__file__)) + "/pinnedcert/"
+    command1 = "openssl s_client -servername https://www." + url + " -connect www." + url + ":443 < /dev/null | sed -n \"/-----BEGIN/,/-----END/p\" > " + dir_path + url + ".pem"
+    command2 = "openssl x509 -in " + dir_path + url + ".pem -pubkey -noout > " + dir_path + url + ".pubkey.pem"
+
+    print "****************"
+    print command1
+    passed = did_command_pass(command1)
+
+    if passed:
+        print "certificated retrieved"
+
+    print "****************"
+    print command2
+    passed2 = did_command_pass(command2)
+    if passed2:
+        print "public key extracted"
+
+
+def pinned_test(url):
+    global test_id
+    global num_pass
+    urlparsed = urlparse.urlparse(url)
+    url = urlparsed.netloc
+    #print url, urlparsed
+    
+    scurl_args = "--pinnedcertificate pinnedcert/" + url + ".pem" + ' ' + urlparsed.geturl()
+    curl_args = "--pinnedpubkey pinnedcert/" + url + ".pubkey.pem" + ' ' + urlparsed.geturl()
+
+    actual_file = './out/actual_' + str(test_id)
+    expected_file = './out/expected_' + str(test_id)
+
+    os.system('rm -rf ' + actual_file)
+    os.system('rm -rf ' + expected_file)
+
+    actually_passed = did_command_pass('./scurl ' + scurl_args + ' &> ' + actual_file)
+    expected_to_pass = did_command_pass('curl -s ' + curl_args + ' &> ' + expected_file)
+
+    if expected_to_pass and actually_passed:
+        if did_command_pass('diff ' + actual_file + ' ' + expected_file + ' &> /dev/null'):
+            os.system('rm -rf ' + actual_file)
+            os.system('rm -rf ' + expected_file)
+            print 'Test', test_id, ': GREAT', expected_to_pass
+            num_pass += 1
+        else:
+            print 'Test', test_id, ': DIFF: ' + args            
+    elif expected_to_pass and not actually_passed:
+        print 'Test', test_id, ': Failed when should have passed: ' + args 
+    elif not expected_to_pass and actually_passed:
+        print 'Test', test_id, ': Passed when should have failed: ' + args 
+    elif not expected_to_pass and not actually_passed:
+        os.system('rm -rf ' + actual_file)
+        os.system('rm -rf ' + expected_file)
+        print 'Test', test_id, ': GREAT', expected_to_pass
+        num_pass += 1
+
+    test_id += 1
+
 print 'Start time', str(datetime.now())
 print 'Running tests on ', len(URLs), 'URLs'
 
 for url_tuple in URLs:
     uid, url, url_tests = url_tuple
 
-    if 'basic' in url_tests:
-        basic_test(url)
-    if 'https' in url_tests:
-        https_test(url)
+    # if 'basic' in url_tests:
+    #     #basic_test(url)
+    # if 'https' in url_tests:
+    #     #https_test(url)
+    if 'pinnedcert' in url_tests:
+        urlparsed = urlparse.urlparse(url)
+        extract_PEM(urlparsed.netloc)
+
+for url_tuple in URLs:
+    uid, url, url_tests = url_tuple
+
+    # if 'basic' in url_tests:
+    #     #basic_test(url)
+    # if 'https' in url_tests:
+    #     #https_test(url)
+    if 'pinnedcert' in url_tests:
+        pinned_test(url)
     
 print 'End time', str(datetime.now())
 print 'Results:', num_pass, '/', test_id
