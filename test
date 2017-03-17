@@ -7,8 +7,8 @@ test_id = 0
 num_pass = 0
 
 URLs = [ 
-(1, 'https://stanford.edu/',                    ['basic', 'pinnedcert']), \
-(2, 'https://expired.badssl.com/',              ['basic', 'pinnedcert']), \
+(1, 'https://www.stanford.edu/',                ['cipher', 'basic', 'pinnedcert']), \
+(2, 'https://expired.badssl.com/',              ['cipher', 'basic', 'pinnedcert']), \
 (3, 'https://wrong.host.badssl.com/',           ['basic']), \
 (4, 'https://self-signed.badssl.com/',          ['basic']), \
 (5, 'https://untrusted-root.badssl.com/',       ['basic']), \
@@ -43,12 +43,19 @@ URLs = [
 (33, 'https://dh2048.badssl.com/',              ['basic']), \
 (34, 'https://dh-small-subgroup.badssl.com/',   ['basic']), \
 (35, 'https://pinning-test.badssl.com/',        ['pinnedcert']), \
-(36, 'https://apple.com',                       ['pinnedcert']), \
-(37, 'https://facebook.com',                    ['pinnedcert'])
+(36, 'https://www.apple.com',                   ['pinnedcert']), \
+(37, 'https://www.facebook.com',                ['pinnedcert']), \
+(38, 'https://www.gmail.com',                   ['pinnedcert']), \
+(39, 'https://revoked.grc.com/',                ['pinnedcert'])
 ]
 
 
-SSL_methods = ['--tlsv1.0'] #['', '--tlsv1.0', '--tlsv1.1', '--tlsv1.2', '--sslv3', '-3']
+
+ciphersText = "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:SRP-DSS-AES-256-CBC-SHA:SRP-RSA-AES-256-CBC-SHA:SRP-AES-256-CBC-SHA:DHE-DSS-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA256:DHE-RSA-AES256-SHA:DHE-DSS-AES256-SHA:DHE-RSA-CAMELLIA256-SHA:DHE-DSS-CAMELLIA256-SHA:ECDH-RSA-AES256-GCM-SHA384:ECDH-ECDSA-AES256-GCM-SHA384:ECDH-RSA-AES256-SHA384:ECDH-ECDSA-AES256-SHA384:ECDH-RSA-AES256-SHA:ECDH-ECDSA-AES256-SHA:AES256-GCM-SHA384:AES256-SHA256:AES256-SHA:CAMELLIA256-SHA:PSK-AES256-CBC-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:SRP-DSS-3DES-EDE-CBC-SHA:SRP-RSA-3DES-EDE-CBC-SHA:SRP-3DES-EDE-CBC-SHA:EDH-RSA-DES-CBC3-SHA:EDH-DSS-DES-CBC3-SHA:ECDH-RSA-DES-CBC3-SHA:ECDH-ECDSA-DES-CBC3-SHA:DES-CBC3-SHA:PSK-3DES-EDE-CBC-SHA:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:SRP-DSS-AES-128-CBC-SHA:SRP-RSA-AES-128-CBC-SHA:SRP-AES-128-CBC-SHA:DHE-DSS-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-SHA256:DHE-DSS-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA:DHE-RSA-SEED-SHA:DHE-DSS-SEED-SHA:DHE-RSA-CAMELLIA128-SHA:DHE-DSS-CAMELLIA128-SHA:ECDH-RSA-AES128-GCM-SHA256:ECDH-ECDSA-AES128-GCM-SHA256:ECDH-RSA-AES128-SHA256:ECDH-ECDSA-AES128-SHA256:ECDH-RSA-AES128-SHA:ECDH-ECDSA-AES128-SHA:AES128-GCM-SHA256:AES128-SHA256:AES128-SHA:SEED-SHA:CAMELLIA128-SHA:PSK-AES128-CBC-SHA:ECDHE-RSA-RC4-SHA:ECDHE-ECDSA-RC4-SHA:ECDH-RSA-RC4-SHA:ECDH-ECDSA-RC4-SHA:RC4-SHA:RC4-MD5:PSK-RC4-SHA:EDH-RSA-DES-CBC-SHA:EDH-DSS-DES-CBC-SHA:DES-CBC-SHA"
+ciphers = ciphersText.split(":")
+
+
+SSL_methods = ['', '--tlsv1.0', '--tlsv1.1', '--tlsv1.2', '--sslv3', '-3']
 
 
 def did_command_pass(command):
@@ -66,7 +73,7 @@ def basic_test(url):
         os.system('rm -rf ' + expected_file)
 
         actually_passed = did_command_pass('./scurl ' + args + ' &> ' + actual_file)
-        expected_to_pass = did_command_pass('curl -s ' + args + ' &> ' + expected_file)
+        expected_to_pass = did_command_pass('./curl -s ' + args + ' &> ' + expected_file)
 
         if expected_to_pass and actually_passed:
             if did_command_pass('diff ' + actual_file + ' ' + expected_file + ' &> /dev/null'):
@@ -87,6 +94,43 @@ def basic_test(url):
             num_pass += 1
 
         test_id += 1
+
+def cipher_test(url):
+    global test_id
+    global num_pass
+    for method in SSL_methods:
+        for cipher in ciphers:
+            args = method + ' ' + '--ciphers' + ' ' + cipher + ' '+ url
+            actual_file = './out/actual_' + str(test_id)
+            expected_file = './out/expected_' + str(test_id)
+
+            os.system('rm -rf ' + actual_file)
+            os.system('rm -rf ' + expected_file)
+
+            actually_passed = did_command_pass('./scurl ' + args + ' &> ' + actual_file)
+            # print('./scurl ' + args + ' &> ' + actual_file)
+            expected_to_pass = did_command_pass('./curl -s ' + args + ' &> ' + expected_file)
+            # print('curl -s ' + args + ' &> ' + expected_file)
+
+            if expected_to_pass and actually_passed:
+                if did_command_pass('diff ' + actual_file + ' ' + expected_file + ' &> /dev/null'):
+                    os.system('rm -rf ' + actual_file)
+                    os.system('rm -rf ' + expected_file)
+                    print 'Test', test_id, ': GREAT', expected_to_pass
+                    num_pass += 1
+                else:
+                    print 'Test', test_id, ': DIFF: ' + args            
+            elif expected_to_pass and not actually_passed:
+                print 'Test', test_id, ': Failed when should have passed: ' + args 
+            elif not expected_to_pass and actually_passed:
+                print 'Test', test_id, ': Passed when should have failed: ' + args 
+            elif not expected_to_pass and not actually_passed:
+                os.system('rm -rf ' + actual_file)
+                os.system('rm -rf ' + expected_file)
+                print 'Test', test_id, ': GREAT', expected_to_pass
+                num_pass += 1
+
+            test_id += 1
 
 def https_test(url):
     global test_id
@@ -109,9 +153,10 @@ def https_test(url):
         test_id += 1
 
 def extract_PEM(url):
+    urlparsed = urlparse.urlparse(url)
     dir_path = os.path.dirname(os.path.realpath(__file__)) + "/pinnedcert/"
-    command1 = "openssl s_client -servername https://www." + url + " -connect www." + url + ":443 < /dev/null | sed -n \"/-----BEGIN/,/-----END/p\" > " + dir_path + url + ".pem"
-    command2 = "openssl x509 -in " + dir_path + url + ".pem -pubkey -noout > " + dir_path + url + ".pubkey.pem"
+    command1 = "openssl s_client -servername " + urlparsed.netloc + " -connect " + urlparsed.netloc + ":443 < /dev/null | sed -n \"/-----BEGIN/,/-----END/p\" > " + dir_path + urlparsed.netloc + ".pem"
+    command2 = "openssl x509 -in " + dir_path + urlparsed.netloc + ".pem -pubkey -noout > " + dir_path + urlparsed.netloc + ".pubkey.pem"
 
     print "****************"
     print command1
@@ -130,6 +175,8 @@ def extract_PEM(url):
 def pinned_test(url):
     global test_id
     global num_pass
+
+
     urlparsed = urlparse.urlparse(url)
     url = urlparsed.netloc
     #print url, urlparsed
@@ -144,7 +191,9 @@ def pinned_test(url):
     os.system('rm -rf ' + expected_file)
 
     actually_passed = did_command_pass('./scurl ' + scurl_args + ' &> ' + actual_file)
-    expected_to_pass = did_command_pass('curl -s ' + curl_args + ' &> ' + expected_file)
+    #print('./scurl ' + scurl_args + ' &> ' + actual_file)
+    expected_to_pass = did_command_pass('./curl -s ' + curl_args + ' &> ' + expected_file)
+    #print('curl ' + curl_args + ' &> ' + expected_file)
 
     if expected_to_pass and actually_passed:
         if did_command_pass('diff ' + actual_file + ' ' + expected_file + ' &> /dev/null'):
@@ -153,11 +202,11 @@ def pinned_test(url):
             print 'Test', test_id, ': GREAT', expected_to_pass
             num_pass += 1
         else:
-            print 'Test', test_id, ': DIFF: ' + args            
+            print 'Test', test_id, ': DIFF: ' + url            
     elif expected_to_pass and not actually_passed:
-        print 'Test', test_id, ': Failed when should have passed: ' + args 
+        print 'Test', test_id, ': Failed when should have passed: ' + url 
     elif not expected_to_pass and actually_passed:
-        print 'Test', test_id, ': Passed when should have failed: ' + args 
+        print 'Test', test_id, ': Passed when should have failed: ' + url 
     elif not expected_to_pass and not actually_passed:
         os.system('rm -rf ' + actual_file)
         os.system('rm -rf ' + expected_file)
@@ -169,26 +218,27 @@ def pinned_test(url):
 print 'Start time', str(datetime.now())
 print 'Running tests on ', len(URLs), 'URLs'
 
+# for url_tuple in URLs:
+#     uid, url, url_tests = url_tuple
+
+#     # if 'basic' in url_tests:
+#     #     #basic_test(url)
+#     # if 'https' in url_tests:
+#     #     #https_test(url)
+#     if 'pinnedcert' in url_tests:
+#         extract_PEM(url)
+
 for url_tuple in URLs:
     uid, url, url_tests = url_tuple
 
     # if 'basic' in url_tests:
-    #     #basic_test(url)
+    #     basic_test(url)
     # if 'https' in url_tests:
-    #     #https_test(url)
-    if 'pinnedcert' in url_tests:
-        urlparsed = urlparse.urlparse(url)
-        extract_PEM(urlparsed.netloc)
-
-for url_tuple in URLs:
-    uid, url, url_tests = url_tuple
-
-    # if 'basic' in url_tests:
-    #     #basic_test(url)
-    # if 'https' in url_tests:
-    #     #https_test(url)
-    if 'pinnedcert' in url_tests:
-        pinned_test(url)
+    #     https_test(url)
+    if 'cipher' in  url_tests:
+        cipher_test(url)
+    # if 'pinnedcert' in url_tests:
+    #     pinned_test(url)
     
 print 'End time', str(datetime.now())
 print 'Results:', num_pass, '/', test_id

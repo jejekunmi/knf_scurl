@@ -14,8 +14,6 @@ X509_V_ERR_CERT_HAS_EXPIRED = 10
 # Global Scurl object
 scurl = None
 
-# Fei's version
-
 class Params():
     def __init__(self):
         self.ssl_method = '--tlsv1.2'
@@ -160,7 +158,7 @@ class Scurl():
         # SSL Method
         try:
             self.context = SSL.Context(SSL_methods[params.ssl_method]) 
-
+            
             # Server must provide certificate that will be verified
             self.context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, Verifier.verify_certificate)
                 
@@ -168,7 +166,7 @@ class Scurl():
             sys.exit('Method failure')
 
         # Server must provide certificate that will be verified
-        self.context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, Verifier.verify_certificate)
+        # self.context.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT, Verifier.verify_certificate)
                 
         # Set ciphers if specified 
         if params.ciphers:
@@ -237,8 +235,7 @@ class Scurl():
                       'HOST: ' + self.url.hostname + '\r\n' + \
                       'User-Agent: scurl/1.0\r\n' + \
                       'Connection: close\r\n\r\n'
-        # print httpRequest
-
+        
         try:
             self.connection.sendall(httpRequest)
             self.recv_and_out(self.connection)
